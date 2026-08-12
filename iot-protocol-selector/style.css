@@ -1818,9 +1818,9 @@ var(--spacing-sm) var(--spacing-lg);
 }
 
 .protected-image {
-    user-select: none;
+    /* user-select: none;
     -webkit-user-drag: none;
-    pointer-events: none;
+    pointer-events: none; */
     max-width: 100%;
     height: auto;
     width: 60%;
