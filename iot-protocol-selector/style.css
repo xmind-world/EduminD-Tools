@@ -1817,7 +1817,17 @@ var(--spacing-sm) var(--spacing-lg);
     }
 }
 
-
+.protected-image {
+    user-select: none;
+    -webkit-user-drag: none;
+    pointer-events: none;
+    max-width: 100%;
+    height: auto;
+    width: 60%;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+}
 
 
 /* ============================================================
@@ -2095,85 +2105,4 @@ var(--spacing-sm) var(--spacing-lg);
 .social-links svg {
     width: 20px;
     height: 20px;
-}
-
-
-/* =========================================
-   Image Zoom Modal (نسخه اصلاح‌شده)
-========================================= */
-.zoom-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.95);
-    z-index: 9999;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: opacity 0.3s ease;
-}
-
-.zoom-modal.hidden {
-    display: none;
-}
-
-.zoom-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    overflow: hidden; /* تغییر از auto به hidden */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    touch-action: none; /* تغییر از pan-x pan-y به none تا JS کنترل کامل داشته باشه */
-}
-
-.zoom-container img {
-    max-width: 92vw;   /* تصویر اولیه در عرض صفحه جا میشه */
-    max-height: 88vh;  /* تصویر اولیه در ارتفاع صفحه جا میشه */
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    transform-origin: center center;
-    user-select: none;
-    -webkit-user-drag: none;
-    pointer-events: auto;
-    will-change: transform;
-}
-
-.zoom-close {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: white;
-    font-size: 28px;
-    cursor: pointer;
-    z-index: 10000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.2s;
-}
-
-.zoom-close:hover {
-    background: rgba(255, 255, 255, 0.4);
-}
-
-/* نشانگر کلیک برای تصاویر */
-.protected-image {
-    cursor: zoom-in;
-    transition: transform 0.2s, opacity 0.2s;
-}
-
-.protected-image:hover {
-    opacity: 0.9;
-    transform: scale(1.02);
 }
