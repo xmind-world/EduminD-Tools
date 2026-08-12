@@ -753,3 +753,143 @@ document.querySelectorAll('.protected-image').forEach(img => {
         e.preventDefault();
     });
 });
+
+
+// =========================================
+// Image Zoom Functionality
+// =========================================
+const zoomModal = document.getElementById('imageZoomModal');
+const zoomedImage = document.getElementById('zoomedImage');
+const zoomClose = document.querySelector('.zoom-close');
+const zoomContainer = document.querySelector('.zoom-container');
+
+// باز کردن مدال با کلیک روی تصویر
+document.querySelectorAll('.protected-image').forEach(img => {
+    img.addEventListener('click', function() {
+        zoomedImage.src = this.src;
+        zoomedImage.alt = this.alt;
+        zoomModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden'; // جلوگیری از اسکرول پس‌زمینه
+        resetZoom();
+    });
+});
+
+// بستن مدال
+function closeModal() {
+    zoomModal.classList.add('hidden');
+    document.body.style.overflow = '';
+    resetZoom();
+}
+
+zoomClose.addEventListener('click', closeModal);
+zoomModal.addEventListener('click', function(e) {
+    if (e.target === zoomModal || e.target === zoomContainer) {
+        closeModal();
+    }
+});
+
+// بستن با دکمه Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !zoomModal.classList.contains('hidden')) {
+        closeModal();
+    }
+});
+
+// Pinch to Zoom و Pan برای موبایل
+let scale = 1, lastScale = 1;
+let posX = 0, posY = 0, lastPosX = 0, lastPosY = 0;
+let startDist = 0;
+let isDragging = false;
+let startX, startY;
+
+function getDistance(touch1, touch2) {
+    return Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+    );
+}
+
+function updateTransform() {
+    zoomedImage.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+}
+
+function resetZoom() {
+    scale = 1;
+    lastScale = 1;
+    posX = 0;
+    posY = 0;
+    lastPosX = 0;
+    lastPosY = 0;
+    updateTransform();
+}
+
+zoomedImage.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 2) {
+        startDist = getDistance(e.touches[0], e.touches[1]);
+        lastScale = scale;
+    } else if (e.touches.length === 1 && scale > 1) {
+        isDragging = true;
+        startX = e.touches[0].clientX - lastPosX;
+        startY = e.touches[0].clientY - lastPosY;
+    }
+}, { passive: true });
+
+zoomedImage.addEventListener('touchmove', function(e) {
+    if (e.touches.length === 2) {
+        e.preventDefault();
+        const currentDist = getDistance(e.touches[0], e.touches[1]);
+        scale = Math.max(1, Math.min(5, lastScale * (currentDist / startDist)));
+        updateTransform();
+    } else if (e.touches.length === 1 && isDragging && scale > 1) {
+        e.preventDefault();
+        posX = e.touches[0].clientX - startX;
+        posY = e.touches[0].clientY - startY;
+        updateTransform();
+    }
+}, { passive: false });
+
+zoomedImage.addEventListener('touchend', function(e) {
+    if (e.touches.length < 2) {
+        isDragging = false;
+        lastPosX = posX;
+        lastPosY = posY;
+        if (scale <= 1) {
+            posX = 0;
+            posY = 0;
+            lastPosX = 0;
+            lastPosY = 0;
+            updateTransform();
+        }
+    }
+});
+
+// دابل تپ برای زوم / خارج شدن از زوم
+let lastTap = 0;
+zoomedImage.addEventListener('touchend', function(e) {
+    const now = Date.now();
+    if (now - lastTap < 300 && e.touches.length === 0) {
+        if (scale > 1) {
+            resetZoom();
+        } else {
+            scale = 2.5;
+            lastPosX = 0;
+            lastPosY = 0;
+            updateTransform();
+        }
+    }
+    lastTap = now;
+});
+
+// پشتیبانی از ماوس در دسکتاپ (Scroll to Zoom)
+zoomedImage.addEventListener('wheel', function(e) {
+    if (!zoomModal.classList.contains('hidden')) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        scale = Math.max(1, Math.min(5, scale * delta));
+        if (scale === 1) {
+            posX = 0;
+            posY = 0;
+        }
+        updateTransform();
+    }
+}, { passive: false });
