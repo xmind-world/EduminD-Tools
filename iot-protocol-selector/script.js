@@ -754,142 +754,164 @@ document.querySelectorAll('.protected-image').forEach(img => {
     });
 });
 
-
 // =========================================
-// Image Zoom Functionality
+// Image Zoom Module - Complete & Standalone
 // =========================================
-const zoomModal = document.getElementById('imageZoomModal');
-const zoomedImage = document.getElementById('zoomedImage');
-const zoomClose = document.querySelector('.zoom-close');
-const zoomContainer = document.querySelector('.zoom-container');
+(function() {
+    'use strict';
 
-// باز کردن مدال با کلیک روی تصویر
-document.querySelectorAll('.protected-image').forEach(img => {
-    img.addEventListener('click', function() {
-        zoomedImage.src = this.src;
-        zoomedImage.alt = this.alt;
+    let zoomModal, zoomedImage, zoomClose, zoomContainer;
+    let scale = 1, lastScale = 1;
+    let posX = 0, posY = 0, lastPosX = 0, lastPosY = 0;
+    let startDist = 0;
+    let isDragging = false;
+    let startX, startY;
+    let lastTap = 0;
+
+    function getDistance(t1, t2) {
+        return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+    }
+
+    function updateTransform() {
+        if (!zoomedImage) return;
+        zoomedImage.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+    }
+
+    function resetZoom() {
+        scale = 1;
+        lastScale = 1;
+        posX = 0; posY = 0;
+        lastPosX = 0; lastPosY = 0;
+        updateTransform();
+    }
+
+    function openModal(img) {
+        if (!zoomModal || !zoomedImage) return;
+        zoomedImage.src = img.src;
+        zoomedImage.alt = img.alt || '';
         zoomModal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden'; // جلوگیری از اسکرول پس‌زمینه
+        document.body.style.overflow = 'hidden';
         resetZoom();
-    });
-});
-
-// بستن مدال
-function closeModal() {
-    zoomModal.classList.add('hidden');
-    document.body.style.overflow = '';
-    resetZoom();
-}
-
-zoomClose.addEventListener('click', closeModal);
-zoomModal.addEventListener('click', function(e) {
-    if (e.target === zoomModal || e.target === zoomContainer) {
-        closeModal();
     }
-});
 
-// بستن با دکمه Escape
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && !zoomModal.classList.contains('hidden')) {
-        closeModal();
+    function closeModal() {
+        if (!zoomModal) return;
+        zoomModal.classList.add('hidden');
+        document.body.style.overflow = '';
+        resetZoom();
     }
-});
 
-// Pinch to Zoom و Pan برای موبایل
-let scale = 1, lastScale = 1;
-let posX = 0, posY = 0, lastPosX = 0, lastPosY = 0;
-let startDist = 0;
-let isDragging = false;
-let startX, startY;
+    function init() {
+        zoomModal = document.getElementById('imageZoomModal');
+        zoomedImage = document.getElementById('zoomedImage');
+        zoomClose = document.querySelector('.zoom-close');
+        zoomContainer = document.querySelector('.zoom-container');
 
-function getDistance(touch1, touch2) {
-    return Math.hypot(
-        touch2.clientX - touch1.clientX,
-        touch2.clientY - touch1.clientY
-    );
-}
+        // اگر المان‌های مدال وجود نداشتن، خطا نده و فقط هشدار بده
+        if (!zoomModal || !zoomedImage || !zoomClose || !zoomContainer) {
+            console.warn('⚠️ Image Zoom: عناصر مدال پیدا نشد. لطفاً کد HTML مدال رو قبل از </body> اضافه کنید.');
+            return;
+        }
 
-function updateTransform() {
-    zoomedImage.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
-}
+        // اتصال به همه تصاویر با کلاس protected-image
+        const images = document.querySelectorAll('.protected-image');
+        if (images.length === 0) {
+            console.warn('⚠️ Image Zoom: هیچ تصویری با کلاس protected-image پیدا نشد.');
+            return;
+        }
 
-function resetZoom() {
-    scale = 1;
-    lastScale = 1;
-    posX = 0;
-    posY = 0;
-    lastPosX = 0;
-    lastPosY = 0;
-    updateTransform();
-}
+        images.forEach(img => {
+            img.style.cursor = 'zoom-in';
+            img.addEventListener('click', function() { openModal(this); });
+            img.addEventListener('contextmenu', e => e.preventDefault());
+            img.addEventListener('dragstart', e => e.preventDefault());
+        });
 
-zoomedImage.addEventListener('touchstart', function(e) {
-    if (e.touches.length === 2) {
-        startDist = getDistance(e.touches[0], e.touches[1]);
-        lastScale = scale;
-    } else if (e.touches.length === 1 && scale > 1) {
-        isDragging = true;
-        startX = e.touches[0].clientX - lastPosX;
-        startY = e.touches[0].clientY - lastPosY;
-    }
-}, { passive: true });
+        // بستن مدال با دکمه ×
+        zoomClose.addEventListener('click', closeModal);
 
-zoomedImage.addEventListener('touchmove', function(e) {
-    if (e.touches.length === 2) {
-        e.preventDefault();
-        const currentDist = getDistance(e.touches[0], e.touches[1]);
-        scale = Math.max(1, Math.min(5, lastScale * (currentDist / startDist)));
-        updateTransform();
-    } else if (e.touches.length === 1 && isDragging && scale > 1) {
-        e.preventDefault();
-        posX = e.touches[0].clientX - startX;
-        posY = e.touches[0].clientY - startY;
-        updateTransform();
-    }
-}, { passive: false });
+        // بستن مدال با کلیک روی پس‌زمینه
+        zoomModal.addEventListener('click', function(e) {
+            if (e.target === zoomModal || e.target === zoomContainer) {
+                closeModal();
+            }
+        });
 
-zoomedImage.addEventListener('touchend', function(e) {
-    if (e.touches.length < 2) {
-        isDragging = false;
-        lastPosX = posX;
-        lastPosY = posY;
-        if (scale <= 1) {
-            posX = 0;
-            posY = 0;
-            lastPosX = 0;
-            lastPosY = 0;
+        // بستن مدال با دکمه Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !zoomModal.classList.contains('hidden')) {
+                closeModal();
+            }
+        });
+
+        // Touch: pinch zoom و pan
+        zoomedImage.addEventListener('touchstart', function(e) {
+            if (e.touches.length === 2) {
+                startDist = getDistance(e.touches[0], e.touches[1]);
+                lastScale = scale;
+            } else if (e.touches.length === 1 && scale > 1) {
+                isDragging = true;
+                startX = e.touches[0].clientX - lastPosX;
+                startY = e.touches[0].clientY - lastPosY;
+            }
+        }, { passive: true });
+
+        zoomedImage.addEventListener('touchmove', function(e) {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                const currentDist = getDistance(e.touches[0], e.touches[1]);
+                scale = Math.max(1, Math.min(5, lastScale * (currentDist / startDist)));
+                updateTransform();
+            } else if (e.touches.length === 1 && isDragging && scale > 1) {
+                e.preventDefault();
+                posX = e.touches[0].clientX - startX;
+                posY = e.touches[0].clientY - startY;
+                updateTransform();
+            }
+        }, { passive: false });
+
+        zoomedImage.addEventListener('touchend', function(e) {
+            if (e.touches.length < 2) {
+                isDragging = false;
+                lastPosX = posX;
+                lastPosY = posY;
+                if (scale <= 1) {
+                    posX = 0; posY = 0;
+                    lastPosX = 0; lastPosY = 0;
+                    updateTransform();
+                }
+            }
+            // Double tap برای زوم سریع
+            const now = Date.now();
+            if (now - lastTap < 300 && e.touches.length === 0) {
+                if (scale > 1) {
+                    resetZoom();
+                } else {
+                    scale = 2.5;
+                    lastPosX = 0; lastPosY = 0;
+                    updateTransform();
+                }
+            }
+            lastTap = now;
+        });
+
+        // Wheel zoom برای دسکتاپ
+        zoomContainer.addEventListener('wheel', function(e) {
+            if (zoomModal.classList.contains('hidden')) return;
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            scale = Math.max(1, Math.min(5, scale * delta));
+            if (scale === 1) { posX = 0; posY = 0; }
             updateTransform();
-        }
-    }
-});
+        }, { passive: false });
 
-// دابل تپ برای زوم / خارج شدن از زوم
-let lastTap = 0;
-zoomedImage.addEventListener('touchend', function(e) {
-    const now = Date.now();
-    if (now - lastTap < 300 && e.touches.length === 0) {
-        if (scale > 1) {
-            resetZoom();
-        } else {
-            scale = 2.5;
-            lastPosX = 0;
-            lastPosY = 0;
-            updateTransform();
-        }
+        console.log('✅ Image Zoom module initialized.');
     }
-    lastTap = now;
-});
 
-// پشتیبانی از ماوس در دسکتاپ (Scroll to Zoom)
-zoomedImage.addEventListener('wheel', function(e) {
-    if (!zoomModal.classList.contains('hidden')) {
-        e.preventDefault();
-        const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        scale = Math.max(1, Math.min(5, scale * delta));
-        if (scale === 1) {
-            posX = 0;
-            posY = 0;
-        }
-        updateTransform();
+    // اجرا بعد از آماده شدن DOM
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
     }
-}, { passive: false });
+})();
