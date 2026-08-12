@@ -760,32 +760,38 @@ document.querySelectorAll('.protected-image').forEach(img => {
 (function() {
     'use strict';
 
+    // ============================================
+    // IMAGE ZOOM FUNCTIONALITY (نسخه اصلاح‌شده)
+    // ============================================
     let zoomModal, zoomedImage, zoomClose, zoomContainer;
-    let scale = 1, lastScale = 1;
-    let posX = 0, posY = 0, lastPosX = 0, lastPosY = 0;
-    let startDist = 0;
-    let isDragging = false;
-    let startX, startY;
-    let lastTap = 0;
+    let zoomScale = 1, zoomLastScale = 1;
+    let zoomPosX = 0, zoomPosY = 0, zoomLastPosX = 0, zoomLastPosY = 0;
+    let zoomStartDist = 0;
+    let zoomIsDragging = false;
+    let zoomStartX, zoomStartY;
+    let zoomLastTap = 0;
 
-    function getDistance(t1, t2) {
+    const ZOOM_MIN = 0.5;
+    const ZOOM_MAX = 5;
+
+    function zoomGetDistance(t1, t2) {
         return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
     }
 
-    function updateTransform() {
+    function zoomUpdateTransform() {
         if (!zoomedImage) return;
-        zoomedImage.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+        zoomedImage.style.transform = `translate(${zoomPosX}px, ${zoomPosY}px) scale(${zoomScale})`;
     }
 
     function resetZoom() {
-        scale = 1;
-        lastScale = 1;
-        posX = 0; posY = 0;
-        lastPosX = 0; lastPosY = 0;
-        updateTransform();
+        zoomScale = 1;
+        zoomLastScale = 1;
+        zoomPosX = 0; zoomPosY = 0;
+        zoomLastPosX = 0; zoomLastPosY = 0;
+        zoomUpdateTransform();
     }
 
-    function openModal(img) {
+    function openZoomModal(img) {
         if (!zoomModal || !zoomedImage) return;
         zoomedImage.src = img.src;
         zoomedImage.alt = img.alt || '';
@@ -794,26 +800,24 @@ document.querySelectorAll('.protected-image').forEach(img => {
         resetZoom();
     }
 
-    function closeModal() {
+    function closeZoomModal() {
         if (!zoomModal) return;
         zoomModal.classList.add('hidden');
         document.body.style.overflow = '';
         resetZoom();
     }
 
-    function init() {
+    function initImageZoom() {
         zoomModal = document.getElementById('imageZoomModal');
         zoomedImage = document.getElementById('zoomedImage');
         zoomClose = document.querySelector('.zoom-close');
         zoomContainer = document.querySelector('.zoom-container');
 
-        // اگر المان‌های مدال وجود نداشتن، خطا نده و فقط هشدار بده
         if (!zoomModal || !zoomedImage || !zoomClose || !zoomContainer) {
-            console.warn('⚠️ Image Zoom: عناصر مدال پیدا نشد. لطفاً کد HTML مدال رو قبل از </body> اضافه کنید.');
+            console.warn('⚠️ Image Zoom: عناصر مدال در HTML پیدا نشد!');
             return;
         }
 
-        // اتصال به همه تصاویر با کلاس protected-image
         const images = document.querySelectorAll('.protected-image');
         if (images.length === 0) {
             console.warn('⚠️ Image Zoom: هیچ تصویری با کلاس protected-image پیدا نشد.');
@@ -822,90 +826,112 @@ document.querySelectorAll('.protected-image').forEach(img => {
 
         images.forEach(img => {
             img.style.cursor = 'zoom-in';
-            img.addEventListener('click', function() { openModal(this); });
+            img.addEventListener('click', function () { openZoomModal(this); });
             img.addEventListener('contextmenu', e => e.preventDefault());
             img.addEventListener('dragstart', e => e.preventDefault());
         });
 
-        // بستن مدال با دکمه ×
-        zoomClose.addEventListener('click', closeModal);
+        zoomClose.addEventListener('click', closeZoomModal);
 
-        // بستن مدال با کلیک روی پس‌زمینه
-        zoomModal.addEventListener('click', function(e) {
+        zoomModal.addEventListener('click', function (e) {
             if (e.target === zoomModal || e.target === zoomContainer) {
-                closeModal();
+                closeZoomModal();
             }
         });
 
-        // بستن مدال با دکمه Escape
-        document.addEventListener('keydown', function(e) {
+        document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape' && !zoomModal.classList.contains('hidden')) {
-                closeModal();
+                closeZoomModal();
             }
         });
 
-        // Touch: pinch zoom و pan
-        zoomedImage.addEventListener('touchstart', function(e) {
-            if (e.touches.length === 2) {
-                startDist = getDistance(e.touches[0], e.touches[1]);
-                lastScale = scale;
-            } else if (e.touches.length === 1 && scale > 1) {
-                isDragging = true;
-                startX = e.touches[0].clientX - lastPosX;
-                startY = e.touches[0].clientY - lastPosY;
-            }
-        }, { passive: true });
-
-        zoomedImage.addEventListener('touchmove', function(e) {
+        // Pinch to Zoom و Pan (موبایل)
+        zoomedImage.addEventListener('touchstart', function (e) {
             if (e.touches.length === 2) {
                 e.preventDefault();
-                const currentDist = getDistance(e.touches[0], e.touches[1]);
-                scale = Math.max(1, Math.min(5, lastScale * (currentDist / startDist)));
-                updateTransform();
-            } else if (e.touches.length === 1 && isDragging && scale > 1) {
-                e.preventDefault();
-                posX = e.touches[0].clientX - startX;
-                posY = e.touches[0].clientY - startY;
-                updateTransform();
+                zoomStartDist = zoomGetDistance(e.touches[0], e.touches[1]);
+                zoomLastScale = zoomScale;
+                zoomIsDragging = false;
+            } else if (e.touches.length === 1 && zoomScale > 1) {
+                zoomIsDragging = true;
+                zoomStartX = e.touches[0].clientX - zoomPosX;
+                zoomStartY = e.touches[0].clientY - zoomPosY;
             }
         }, { passive: false });
 
-        zoomedImage.addEventListener('touchend', function(e) {
-            if (e.touches.length < 2) {
-                isDragging = false;
-                lastPosX = posX;
-                lastPosY = posY;
-                if (scale <= 1) {
-                    posX = 0; posY = 0;
-                    lastPosX = 0; lastPosY = 0;
-                    updateTransform();
-                }
-            }
-            // Double tap برای زوم سریع
-            const now = Date.now();
-            if (now - lastTap < 300 && e.touches.length === 0) {
-                if (scale > 1) {
-                    resetZoom();
-                } else {
-                    scale = 2.5;
-                    lastPosX = 0; lastPosY = 0;
-                    updateTransform();
-                }
-            }
-            lastTap = now;
-        });
+        zoomedImage.addEventListener('touchmove', function (e) {
+            e.preventDefault();
 
-        // Wheel zoom برای دسکتاپ
-        zoomContainer.addEventListener('wheel', function(e) {
+            if (e.touches.length === 2) {
+                const currentDist = zoomGetDistance(e.touches[0], e.touches[1]);
+                if (zoomStartDist > 0) {
+                    zoomScale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomLastScale * (currentDist / zoomStartDist)));
+                    zoomUpdateTransform();
+                }
+            } else if (e.touches.length === 1 && zoomIsDragging && zoomScale > 1) {
+                zoomPosX = e.touches[0].clientX - zoomStartX;
+                zoomPosY = e.touches[0].clientY - zoomStartY;
+                zoomUpdateTransform();
+            }
+        }, { passive: false });
+
+        zoomedImage.addEventListener('touchend', function (e) {
+            if (e.touches.length === 0) {
+                zoomIsDragging = false;
+                zoomStartDist = 0;
+
+                // Snap back: اگه scale نزدیک 1 هست، دقیقاً 1 کن
+                if (zoomScale > 0.9 && zoomScale < 1.1) {
+                    zoomScale = 1;
+                }
+                // اگه کمتر از 1 هست، به 1 برگردون
+                if (zoomScale < 1) {
+                    zoomScale = 1;
+                    zoomPosX = 0;
+                    zoomPosY = 0;
+                }
+
+                zoomLastScale = zoomScale;
+                zoomLastPosX = zoomPosX;
+                zoomLastPosY = zoomPosY;
+                zoomUpdateTransform();
+
+                // دابل تپ برای زوم
+                const now = Date.now();
+                if (now - zoomLastTap < 300) {
+                    if (zoomScale > 1) {
+                        resetZoom();
+                    } else {
+                        zoomScale = 2.5;
+                        zoomUpdateTransform();
+                    }
+                    zoomLastTap = 0;
+                } else {
+                    zoomLastTap = now;
+                }
+            } else if (e.touches.length === 1) {
+                // تبدیل از pinch به pan
+                zoomStartDist = 0;
+                zoomLastScale = zoomScale;
+                if (zoomScale > 1) {
+                    zoomIsDragging = true;
+                    zoomStartX = e.touches[0].clientX - zoomPosX;
+                    zoomStartY = e.touches[0].clientY - zoomPosY;
+                }
+            }
+        }, { passive: false });
+
+        // زوم با اسکرول ماوس (دسکتاپ)
+        zoomContainer.addEventListener('wheel', function (e) {
             if (zoomModal.classList.contains('hidden')) return;
             e.preventDefault();
             const delta = e.deltaY > 0 ? 0.9 : 1.1;
-            scale = Math.max(1, Math.min(5, scale * delta));
-            if (scale === 1) { posX = 0; posY = 0; }
-            updateTransform();
+            zoomScale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomScale * delta));
+            if (zoomScale <= 1) { zoomPosX = 0; zoomPosY = 0; }
+            zoomUpdateTransform();
         }, { passive: false });
 
-        console.log('✅ Image Zoom module initialized.');
+        console.log('✅ Image Zoom initialized (fixed version).');
     }
 
     // اجرا بعد از آماده شدن DOM
