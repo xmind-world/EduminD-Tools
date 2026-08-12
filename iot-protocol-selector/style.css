@@ -1815,6 +1815,9 @@ var(--spacing-sm) var(--spacing-lg);
     .fc-result {
         min-width: 125px;
     }
+   .protected-image{
+      width: 100%;
+   }
 }
 
 .protected-image {
