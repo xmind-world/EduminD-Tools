@@ -1817,17 +1817,7 @@ var(--spacing-sm) var(--spacing-lg);
     }
 }
 
-.protected-image {
-    /* user-select: none;
-    -webkit-user-drag: none;
-    pointer-events: none; */
-    max-width: 100%;
-    height: auto;
-    width: 60%;
-    object-fit: contain;
-    display: block;
-    margin: 0 auto;
-}
+
 
 
 /* ============================================================
@@ -2177,9 +2167,18 @@ var(--spacing-sm) var(--spacing-lg);
 }
 
 /* نشانگر کلیک برای تصاویر */
+/* Image styles - Responsive and Zoomable */
 .protected-image {
+    max-width: 100%;
+    height: auto;
+    width: 100%;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
     cursor: zoom-in;
-    transition: transform 0.2s, opacity 0.2s;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    user-select: none;
+    -webkit-user-drag: none;
 }
 
 .protected-image:hover {
